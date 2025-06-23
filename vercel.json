@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/webhook.py": {
-      "runtime": "python3.13"
+      "runtime": "python3.9"
     }
   },
   "routes": [
