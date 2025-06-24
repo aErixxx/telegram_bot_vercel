@@ -156,9 +156,24 @@ class handler(BaseHTTPRequestHandler):
                     })
                     return
                 
-                # Process webhook asynchronously
+                # Process webhook with proper event loop handling
                 import asyncio
-                asyncio.run(self._process_webhook(webhook_data))
+                try:
+                    # Create new event loop for serverless environment
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    # Run the webhook processing
+                    loop.run_until_complete(self._process_webhook(webhook_data))
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error in async processing: {e}")
+                finally:
+                    # Clean up the loop properly
+                    try:
+                        loop.close()
+                    except:
+                        pass
                 
                 # Send success response
                 self._send_json_response(200, {
@@ -190,8 +205,15 @@ class handler(BaseHTTPRequestHandler):
             # Create Update object
             update = Update(**webhook_data)
             
-            # Process the update
-            await dp.feed_update(bot, update)
+            # Create a fresh bot instance for this request
+            bot_instance = Bot(token=BOT_TOKEN)
+            
+            # Process the update with proper session management
+            try:
+                await dp.feed_update(bot_instance, update)
+            finally:
+                # Close bot session properly
+                await bot_instance.session.close()
             
         except Exception as e:
             logger.error(f"❌ Error processing update: {e}")
