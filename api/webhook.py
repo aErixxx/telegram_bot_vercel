@@ -1,7 +1,9 @@
 import os
+import json
 import logging
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update, Message
 from aiogram.filters import Command
@@ -15,9 +17,6 @@ BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is required")
-
-# สร้าง FastAPI app
-app = FastAPI(title="Telegram Bot", version="1.0.0")
 
 # สร้าง bot และ dispatcher
 bot = Bot(token=BOT_TOKEN)
@@ -62,7 +61,7 @@ async def info_command(message: Message):
 
 🔸 ชื่อ: Telegram Bot
 🔸 เวอร์ชั่น: 1.0.0
-🔸 พัฒนาด้วย: aiogram + FastAPI + Vercel
+🔸 พัฒนาด้วย: aiogram + Vercel
 🔸 สถานะ: ออนไลน์ ✅
 
 📊 **ข้อมูลผู้ใช้:**
@@ -90,73 +89,126 @@ async def echo_message(message: Message):
     else:
         await message.reply("ขอโทษครับ ตอนนี้รองรับเฉพาะข้อความเท่านั้น")
 
-# FastAPI Routes
-@app.get("/")
-async def root():
-    """Get bot status"""
-    return JSONResponse({
-        "message": "🤖 Telegram Bot is running!",
-        "status": "OK",
-        "bot_info": {
-            "name": "Telegram Bot",
-            "version": "1.0.0",
-            "framework": "aiogram + FastAPI + Vercel",
-            "available_commands": ["/start", "/help", "/info"]
-        }
-    })
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    """Process Telegram webhook"""
-    try:
-        # Parse JSON body
-        webhook_data = await request.json()
-        logger.info(f"📨 Received webhook: {webhook_data}")
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        """Handle GET requests"""
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
         
-        # ตรวจสอบว่าเป็น Telegram update หรือไม่
-        if 'update_id' not in webhook_data:
-            logger.warning("⚠️ Invalid webhook data - missing update_id")
-            raise HTTPException(status_code=400, detail="Invalid webhook data")
-        
-        # Create Update object
-        update = Update(**webhook_data)
-        
-        # Process the update
-        await dp.feed_update(bot, update)
-        
-        return JSONResponse({
-            "ok": True,
-            "update_id": webhook_data.get('update_id'),
-            "processed": True
-        })
-        
-    except Exception as e:
-        logger.error(f"❌ Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        try:
+            if path == "/" or path == "":
+                # Root endpoint
+                response_data = {
+                    "message": "🤖 Telegram Bot is running!",
+                    "status": "OK",
+                    "bot_info": {
+                        "name": "Telegram Bot",
+                        "version": "1.0.0",
+                        "framework": "aiogram + Vercel",
+                        "available_commands": ["/start", "/help", "/info"]
+                    }
+                }
+                self._send_json_response(200, response_data)
+                
+            elif path == "/health":
+                # Health check endpoint
+                response_data = {
+                    "status": "healthy",
+                    "bot_token_set": bool(BOT_TOKEN),
+                    "timestamp": datetime.now().isoformat()
+                }
+                self._send_json_response(200, response_data)
+                
+            else:
+                # 404 for other paths
+                self._send_json_response(404, {
+                    "error": "Endpoint not found",
+                    "path": path
+                })
+                
+        except Exception as e:
+            logger.error(f"❌ Error in GET request: {e}")
+            self._send_json_response(500, {
+                "error": "Internal server error",
+                "detail": str(e)
+            })
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return JSONResponse({
-        "status": "healthy",
-        "bot_token_set": bool(BOT_TOKEN),
-        "timestamp": "2024-06-24"
-    })
+    def do_POST(self):
+        """Handle POST requests"""
+        try:
+            parsed_path = urlparse(self.path)
+            path = parsed_path.path
+            
+            if path == "/webhook":
+                # Read request body
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                
+                # Parse JSON
+                webhook_data = json.loads(post_data.decode('utf-8'))
+                logger.info(f"📨 Received webhook: {webhook_data}")
+                
+                # ตรวจสอบว่าเป็น Telegram update หรือไม่
+                if 'update_id' not in webhook_data:
+                    logger.warning("⚠️ Invalid webhook data - missing update_id")
+                    self._send_json_response(400, {
+                        "error": "Invalid webhook data"
+                    })
+                    return
+                
+                # Process webhook asynchronously
+                import asyncio
+                asyncio.run(self._process_webhook(webhook_data))
+                
+                # Send success response
+                self._send_json_response(200, {
+                    "ok": True,
+                    "update_id": webhook_data.get('update_id'),
+                    "processed": True
+                })
+                
+            else:
+                self._send_json_response(404, {
+                    "error": "Endpoint not found",
+                    "path": path
+                })
+                
+        except json.JSONDecodeError:
+            self._send_json_response(400, {
+                "error": "Invalid JSON in request body"
+            })
+        except Exception as e:
+            logger.error(f"❌ Error processing webhook: {e}")
+            self._send_json_response(500, {
+                "error": "Internal server error",
+                "detail": str(e)
+            })
 
-# Error handlers
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc):
-    return JSONResponse(
-        status_code=404,
-        content={"error": "Endpoint not found", "path": str(request.url.path)}
-    )
+    async def _process_webhook(self, webhook_data):
+        """Process Telegram webhook data"""
+        try:
+            # Create Update object
+            update = Update(**webhook_data)
+            
+            # Process the update
+            await dp.feed_update(bot, update)
+            
+        except Exception as e:
+            logger.error(f"❌ Error processing update: {e}")
+            raise
 
-@app.exception_handler(500)
-async def internal_error_handler(request: Request, exc):
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error", "detail": str(exc)}
-    )
+    def _send_json_response(self, status_code, data):
+        """Send JSON response"""
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+        
+        response = json.dumps(data, ensure_ascii=False, indent=2)
+        self.wfile.write(response.encode('utf-8'))
 
-# Main handler function สำหรับ Vercel
-handler = app
+    def log_message(self, format, *args):
+        """Override log message to use our logger"""
+        logger.info(f"{self.address_string()} - {format % args}")
