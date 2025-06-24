@@ -1,11 +1,12 @@
+import os
+import logging
 from aiogram import Router, types
 from aiogram.types import Message
-import logging
 
 logger = logging.getLogger(__name__)
 router = Router()
 
-admin_chat_id = os.getenv("ADMIN_ID")# เปลี่ยนเป็น chat_id ของแอดมินจริง ๆ ของคุณ
+admin_chat_id = os.getenv("ADMIN_ID")# เปลี่ยนเป็น chat_id ของแอดมิน
 if not admin_chat_id:
     raise ValueError("ADMIN_ID environment variable is required")
     
