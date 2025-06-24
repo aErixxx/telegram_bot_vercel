@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update, Message
-from aiogram.filters import Command
 from api.command import router
 
 # ตั้งค่า logging
