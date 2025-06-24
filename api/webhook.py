@@ -71,7 +71,7 @@ async def info_command(message: Message):
         user_id=message.from_user.id,
         username=message.from_user.username or "ไม่ระบุ"
     )
-    await message.reply(info_text)
+    await message.reply(info_text, parse_mode=None)
 
 # Handle ข้อความทั่วไป
 @dp.message()
@@ -83,7 +83,7 @@ async def echo_message(message: Message):
         response += f"📝 ความยาวข้อความ: {len(message.text)} ตัวอักษร\n"
         response += f"⏰ เวลา: {message.date.strftime('%H:%M:%S')}"
         
-        await message.reply(response)
+        await message.reply(response, parse_mode=None)
     else:
         await message.reply("ขอโทษครับ ตอนนี้รองรับเฉพาะข้อความเท่านั้น")
 
