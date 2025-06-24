@@ -119,7 +119,7 @@ async def echo_handler(message: Message):
                 notification_text += f"✏️ มีแก้ไข: {replied_content[:200]}\n\n"
                 notification_text += f"📝 ข้อความ: \n\n<pre>{message.text}</pre>"
 
-                await message.answer(f"📌รับทราบครับ จะรีบแก้ไขทันที!\n\n{replied_content}")
+                await message.answer(f"📌รับทราบครับ จะรีบแก้ไขทันที!\n\n{replied_content}",parse_mode="HTML")
 
                 if replied_message.text:
                     await message.answer(f"<pre>{replied_message.text}</pre>", parse_mode="HTML")
