@@ -7,6 +7,7 @@ from urllib.parse import urlparse, parse_qs
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update, Message
 from aiogram.filters import Command
+from command import router
 
 # ตั้งค่า logging
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +22,7 @@ if not BOT_TOKEN:
 # สร้าง bot และ dispatcher
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+dp.include_router(router)
 
 # Command handlers
 @dp.message(Command("start"))
