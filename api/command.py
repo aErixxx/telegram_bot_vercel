@@ -2,6 +2,7 @@ import os
 import logging
 from aiogram import Router, types
 from aiogram.types import Message
+from aiogram.filters import Command
 
 logger = logging.getLogger(__name__)
 router = Router()
