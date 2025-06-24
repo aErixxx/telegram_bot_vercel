@@ -1,10 +1,32 @@
-# Telegram Bot with Vercel
+# 🤖 Telegram Bot on Vercel with FastAPI & Aiogram
 
-บอทเทเลแกรมที่ใช้ aiogram และ deploy บน Vercel
+A full-featured **Telegram Bot** built with **Python**, leveraging **FastAPI** for HTTP routing and **Aiogram** for bot logic. This project is designed for seamless deployment on **Vercel** as a serverless function — no dedicated server required!
 
-## 🚀 การติดตั้งและใช้งาน
+> 🧑‍💻 Built by [aErixx](https://github.com/aErixxx) with ❤️
 
-### 1. Clone โปรเจค
-```bash
-git clone <your-repo-url>
-cd telegram-bot-vercel
+---
+
+## 📌 Overview
+
+This bot supports:
+
+- `/start`, `/help` command handlers
+- Echoing user messages
+- Handling media (photos, documents, video, audio, voice)
+- Smart reply tracking and admin notifications when users reply with `"ok"`
+- Easily deployable to **Vercel** with a webhook
+
+---
+
+## ⚙️ Tech Stack
+
+- 🐍 Python 3.10+
+- ⚡ FastAPI (webhook listener)
+- 🤖 Aiogram (Telegram Bot Framework)
+- ☁️ Vercel (Serverless hosting)
+- 🔐 dotenv (Environment management)
+
+---
+
+## 🗂 Project Structure
+
