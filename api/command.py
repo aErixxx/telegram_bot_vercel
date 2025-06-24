@@ -7,6 +7,57 @@ router = Router()
 
 admin_chat_id = os.getenv("ADMIN_ID")# เปลี่ยนเป็น chat_id ของแอดมินจริง ๆ ของคุณ
 
+# Command handlers
+@router.message(Command("start"))
+async def start_command(message: Message):
+    """Handle /start command"""
+    await message.reply(
+        f"สวัสดี {message.from_user.first_name}! 👋\n"
+        "ยินดีต้อนรับสู่บอทของเรา\n\n"
+        "คำสั่งที่ใช้ได้:\n"
+        "/start - เริ่มต้นใช้งาน\n"
+        "/help - ดูความช่วยเหลือ\n"
+        "/info - ข้อมูลเกี่ยวกับบอท"
+    )
+
+@router.message(Command("help"))
+async def help_command(message: Message):
+    """Handle /help command"""
+    help_text = """🤖 คำสั่งที่ใช้ได้:
+
+/start - เริ่มต้นใช้งานบอท
+/help - แสดงความช่วยเหลือ
+/info - ข้อมูลเกี่ยวกับบอท
+
+📝 วิธีใช้งาน:
+- ส่งข้อความมาได้เลย บอทจะตอบกลับ
+- ใช้คำสั่งด้านบนเพื่อดูฟีเจอร์ต่างๆ
+
+💡 ติดต่อ: @your_username"""
+    
+    # ใช้ HTML แทน Markdown และหลีกเลี่ยง special characters
+    await message.answer(help_text)
+
+@router.message(Command("info"))
+async def info_command(message: Message):
+    """Handle /info command"""
+    info_text = """ℹ️ ข้อมูลบอท
+
+🔸 ชื่อ: Telegram Bot
+🔸 เวอร์ชั่น: 1.0.0
+🔸 พัฒนาด้วย: aiogram + Vercel
+🔸 สถานะ: ออนไลน์ ✅
+
+📊 ข้อมูลผู้ใช้:
+- ชื่อ: {first_name}
+- ID: {user_id}
+- Username: @{username}""".format(
+        first_name=message.from_user.first_name or "ไม่ระบุ",
+        user_id=message.from_user.id,
+        username=message.from_user.username or "ไม่ระบุ"
+    )
+    await message.reply(info_text)
+    
 @router.message()
 async def echo_handler(message: Message):
     user_id = message.from_user.id
