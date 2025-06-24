@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "functions": {
     "api/*.py": {
       "maxDuration": 60
@@ -20,5 +21,8 @@
       "methods": ["GET"],
       "dest": "api/webhook.py"
     }
-  ]
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token"
+  }
 }
