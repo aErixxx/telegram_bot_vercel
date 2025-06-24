@@ -48,7 +48,7 @@ class handler(BaseHTTPRequestHandler):
             elif path == "/status":
                 # Health check endpoint
                 response_data = {
-                    "status": "Status",
+                    "status": "Ok",
                     "bot_token_set": bool(BOT_TOKEN),
                     "timestamp": datetime.now().isoformat()
                 }
