@@ -17,9 +17,13 @@ async def start_command(message: Message):
         "คำสั่งที่ใช้ได้:\n"
         "/start - เริ่มต้นใช้งาน\n"
         "/help - ดูความช่วยเหลือ\n"
-        "/info - ข้อมูลเกี่ยวกับบอท"
+        "/info - ข้อมูลเกี่ยวกับบอท\n\n"
+        "ฟีเจอร์:\n"
+        "- ตอบกลับข้อความ (Echo) ที่ผู้ใช้ส่งมา\n"
+        "- รองรับการรับและจัดการสื่อหลายประเภท เช่น รูปภาพ, ไฟล์เอกสาร, วิดีโอ, เสียง และข้อความเสียง\n"
+        "- ติดตามการตอบกลับ (reply) ของผู้ใช้ "\n"
     )
-
+    
 @router.message(Command("help"))
 async def help_command(message: Message):
     """Handle /help command"""
