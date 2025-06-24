@@ -19,7 +19,7 @@ BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is required")
 
-# สร้าง bot และ dispatcher
+# bot และ dispatcher
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
