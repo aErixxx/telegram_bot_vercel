@@ -29,4 +29,34 @@ This bot supports:
 ---
 
 ## 🗂 Project Structure
+telegram-bot-vercel/
+├── api/
+│ └── webhook.py # FastAPI app + Aiogram dispatcher
+├── .env # Your Telegram Bot token (not committed)
+├── vercel.json # Vercel config for routing & functions
+├── requirements.txt # Python dependencies
+└── README.md # Project documentation
 
+---
+
+## 📥 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/telegram-bot-vercel.git
+cd telegram-bot-vercel
+```
+💡 Tips
+Don't forget to keep your token secret.
+
+You can monitor logs from Vercel dashboard.
+
+For large bots, consider using a dedicated server with polling instead of webhooks.
+
+🙋‍♂️ Author
+Made with ⚡ and ☕ by aErixx
+
+Telegram: @aErixx
+
+GitHub: aErixx
