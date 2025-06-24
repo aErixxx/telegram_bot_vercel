@@ -119,14 +119,14 @@ async def echo_handler(message: Message):
                 notification_text += f"✏️ มีแก้ไข: {replied_content[:200]}\n\n"
                 notification_text += f"📝 ข้อความ: \n\n<pre>{message.text}</pre>"
 
-                await message.answer(f"📌รับทราบครับ จะรีบแก้ไขทันที!\n\n{replied_content}",parse_mode="HTML")
+                await message.answer(f"📌รับทราบครับ จะรีบแก้ไขทันที!\n\n{replied_content}")
 
                 if replied_message.text:
                     await message.answer(f"<pre>{replied_message.text}</pre>", parse_mode="HTML")
                 elif replied_message.photo:
                     await message.answer_photo(replied_message.photo[-1].file_id, caption=notification_text)
                 elif replied_message.document:
-                    await message.answer_document(replied_message.document.file_id, caption=notification_text)
+                    await message.answer_document(replied_message.document.file_id, caption=notification_text,parse_mode="HTML")
                 elif replied_message.video:
                     await message.answer_video(replied_message.video.file_id, caption=notification_text)
                 elif replied_message.audio:
