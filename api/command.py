@@ -6,13 +6,15 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 admin_chat_id = os.getenv("ADMIN_ID")# เปลี่ยนเป็น chat_id ของแอดมินจริง ๆ ของคุณ
-
+if not admin_chat_id:
+    raise ValueError("ADMIN_ID environment variable is required")
+    
 # Command handlers
 @router.message(Command("start"))
 async def start_command(message: Message):
     """Handle /start command"""
     await message.reply(
-        f"สวัสดี {message.from_user.first_name}! 👋\n"
+        f"สวัสดี {message.from_user.first_name} 👋\n"
         "ยินดีต้อนรับสู่บอทของเรา\n\n"
         "คำสั่งที่ใช้ได้:\n"
         "/start - เริ่มต้นใช้งาน\n"
