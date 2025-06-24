@@ -1,25 +1,18 @@
-import os
-import sys
-from fastapi import FastAPI, Request
+from http.server import BaseHTTPRequestHandler
+import json
 
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Telegram Bot is running!",
-        "status": "OK",
-        "has_token": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
-        "python_version": sys.version
-    }
-
-@app.post("/webhook")  
-async def webhook(request: Request):
-    try:
-        data = await request.json()
-        return {"ok": True, "received": True}
-    except Exception as e:
-        return {"error": str(e)}
-
-# For Vercel
-handler = app
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "message": "Bot is running",
+            "status": "OK"
+        }).encode())
+        
+    def do_POST(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"ok": True}).encode())
