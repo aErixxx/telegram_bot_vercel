@@ -17,7 +17,7 @@
       "dest": "api/webhook.py"
     },
     {
-      "src": "/health",
+      "src": "/status",
       "methods": ["GET"],
       "dest": "api/webhook.py"
     }
