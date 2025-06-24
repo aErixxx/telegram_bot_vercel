@@ -14,6 +14,11 @@
       "src": "/webhook",
       "methods": ["POST"],
       "dest": "api/webhook.py"
+    },
+    {
+      "src": "/health",
+      "methods": ["GET"],
+      "dest": "api/webhook.py"
     }
   ]
 }
