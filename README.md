@@ -1,4 +1,4 @@
-# 🤖 Telegram Bot on Vercel with FastAPI & Aiogram
+# 🤖 Telegram Bot on Vercel(Serverless Hosting) with FastAPI & Aiogram
 
 A full-featured **Telegram Bot** built with **Python**, leveraging **FastAPI** for HTTP routing and **Aiogram** for bot logic. This project is designed for seamless deployment on **Vercel** as a serverless function — no dedicated server required!
 
@@ -8,14 +8,12 @@ A full-featured **Telegram Bot** built with **Python**, leveraging **FastAPI** f
 
 ## 📌 Overview
 
-This bot supports:
-
-- `/start`, `/help` command handlers
-- Echoing user messages
-- Handling media (photos, documents, video, audio, voice)
-- Smart reply tracking and admin notifications when users reply with `"ok"`
-- Easily deployable to **Vercel** with a webhook
-
+- Supports `/start`, `/help`, and `/info` commands
+- Echoes user messages with additional info such as message length and timestamp
+- Handles media: photos, documents, videos, audio, voice messages, and stickers
+- Tracks user replies and notifies the admin when a reply contains `"ok"`
+- Simple webhook integration compatible with Vercel
+- Users can reply with “ok” to the bot, which will then notify the admin confirming that the file or message is correct.
 ---
 
 ## ⚙️ Tech Stack
@@ -29,8 +27,10 @@ This bot supports:
 ---
 
 ## 🗂 Project Structure
+
 telegram-bot-vercel/
 ├── api/
+│ └── command.py # Handlers route command
 │ └── webhook.py # FastAPI app + Aiogram dispatcher
 ├── .env # Your Telegram Bot token (not committed)
 ├── vercel.json # Vercel config for routing & functions
@@ -57,6 +57,6 @@ For large bots, consider using a dedicated server with polling instead of webhoo
 🙋‍♂️ Author
 Made with ⚡ and ☕ by aErixx
 
-Telegram: @aErixx
+Telegram: @aEl2ixx
 
 GitHub: aErixx
