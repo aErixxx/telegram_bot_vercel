@@ -57,6 +57,4 @@ For large bots, consider using a dedicated server with polling instead of webhoo
 🙋‍♂️ Author
 Made with ⚡ and ☕ by aErixx
 
-Telegram: @aEl2ixx
-
 GitHub: aErixx
