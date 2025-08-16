@@ -1,8 +1,9 @@
 import os
 import logging
 from aiogram import Router, types
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import Command
+from aiogram.filters.callback_data import CallbackData
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -10,6 +11,11 @@ router = Router()
 admin_chat_id = os.getenv("ADMIN_ID")# เปลี่ยนเป็น chat_id ของแอดมิน
 if not admin_chat_id:
     raise ValueError("ADMIN_ID environment variable is required")
+
+# Callback data class for handling button clicks
+class ActionCallback(CallbackData, prefix="action"):
+    action: str
+    user_id: int
     
 # Command handlers
 @router.message(Command("start"))
@@ -28,6 +34,7 @@ async def start_command(message: Message):
 - ตอบกลับข้อความ (Echo) ที่ผู้ใช้ส่งมา
 - รองรับการรับและจัดการสื่อหลายประเภท เช่น รูปภาพ, ไฟล์เอกสาร, วิดีโอ, เสียง และข้อความเสียง
 - ติดตามการตอบกลับ (reply) ของผู้ใช้ และแจ้งเตือนไปยังแอดมินเมื่อผู้ใช้ตอบกลับ"ok"
+- ปุ่ม OK/Cancel สำหรับการยืนยัน
 """
 )     
     
@@ -43,8 +50,8 @@ async def help_command(message: Message):
 📝 วิธีใช้งาน:
 - ส่งข้อความมาได้เลย บอทจะตอบกลับ
 - ใช้คำสั่งด้านบนเพื่อดูฟีเจอร์ต่างๆ
+- กดปุ่ม OK เพื่อยืนยัน หรือ Cancel เพื่อยกเลิก
 """
-    # ใช้ HTML แทน Markdown และหลีกเลี่ยง special characters
     await message.answer(help_text)
 
 @router.message(Command("info"))
@@ -66,7 +73,56 @@ async def info_command(message: Message):
         username=message.from_user.username or "ไม่ระบุ"
     )
     await message.reply(info_text)
+
+# Function to create inline keyboard
+def create_ok_cancel_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    """Create OK/Cancel inline keyboard"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="✅ OK", 
+                callback_data=ActionCallback(action="ok", user_id=user_id).pack()
+            ),
+            InlineKeyboardButton(
+                text="❌ Cancel", 
+                callback_data=ActionCallback(action="cancel", user_id=user_id).pack()
+            )
+        ]
+    ])
+    return keyboard
+
+# Callback query handler for button clicks
+@router.callback_query(ActionCallback.filter())
+async def handle_action_callback(callback: CallbackQuery, callback_data: ActionCallback):
+    """Handle OK/Cancel button clicks"""
+    user_id = callback.from_user.id
+    username = callback.from_user.username or "Unknown"
     
+    if callback_data.action == "ok":
+        # Same functionality as sending "ok" message
+        await callback.message.edit_text(
+            text=callback.message.text + "\n\n✅ ยืนยันแล้ว",
+            reply_markup=None  # Remove buttons
+        )
+        
+        try:
+            notification_text = f"📝 ผู้ใช้ {username} (ID: {user_id}) \nกดปุ่ม OK ✅"
+            await callback.bot.send_message(
+                chat_id=admin_chat_id,
+                text=notification_text
+            )
+        except Exception as e:
+            logger.error(f"เกิดข้อผิดพลาดในการส่งการแจ้งเตือนไปยัง admin: {e}")
+            
+    elif callback_data.action == "cancel":
+        await callback.message.edit_text(
+            text=callback.message.text + "\n\n❌ ยกเลิกแล้ว",
+            reply_markup=None  # Remove buttons
+        )
+    
+    # Answer the callback to remove loading state
+    await callback.answer()
+
 @router.message()
 async def echo_handler(message: Message):
     user_id = message.from_user.id
@@ -147,7 +203,11 @@ async def echo_handler(message: Message):
                 document=message.document.file_id,
                 caption=f"📁 ผู้ใช้ {username} (ID: {user_id}) ส่งไฟล์เอกสาร:\n {message.document.file_name or 'ไม่ทราบชื่อไฟล์'}"
             )
-            await message.answer(f"📎ได้รับ {message.document.file_name} เรียบร้อยแล้ว")
+            # Add buttons to the response
+            await message.answer(
+                f"📎ได้รับ {message.document.file_name} เรียบร้อยแล้ว", 
+                reply_markup=create_ok_cancel_keyboard(user_id)
+            )
 
         elif message.photo:
             photo_file_id = message.photo[-1].file_id
@@ -157,7 +217,11 @@ async def echo_handler(message: Message):
             if caption:
                 combined_caption += f"\n📝 คำอธิบาย:\n {caption}"
             await message.bot.send_photo(chat_id=admin_chat_id, photo=photo_file_id, caption=combined_caption)
-            await message.answer(f"📎ไฟล์: {photo_filename}\nผลการส่ง: OK" + (f" ({caption})" if caption else ""))
+            # Add buttons to the response
+            await message.answer(
+                f"📎ไฟล์: {photo_filename}\nผลการส่ง: OK" + (f" ({caption})" if caption else ""),
+                reply_markup=create_ok_cancel_keyboard(user_id)
+            )
 
         elif message.video:
             video_file_id = message.video.file_id
@@ -167,7 +231,11 @@ async def echo_handler(message: Message):
                 video=video_file_id,
                 caption=f"📁 ผู้ใช้ {username} (ID: {user_id}) ส่งวิดีโอ: {video_filename}"
             )
-            await message.answer(f"📎 ได้รับไฟล์: {video_filename} เรียบร้อยแล้ว")
+            # Add buttons to the response
+            await message.answer(
+                f"📎 ได้รับไฟล์: {video_filename} เรียบร้อยแล้ว",
+                reply_markup=create_ok_cancel_keyboard(user_id)
+            )
 
     elif message.text and message.text.lower() == "ok":
         await message.answer("✅ รับทราบแล้ว! ขอบคุณสำหรับการยืนยัน")
@@ -181,7 +249,14 @@ async def echo_handler(message: Message):
 
     else:
         if message.text:
-            await message.answer(f"ข้อความของคุณ: {message.text}")
+            # Add buttons to regular text responses
+            await message.answer(
+                f"ข้อความของคุณ: {message.text}", 
+                reply_markup=create_ok_cancel_keyboard(user_id)
+            )
         else:
-            await message.answer("ได้รับข้อความของคุณแล้ว!")
-
+            # Add buttons to other message types
+            await message.answer(
+                "ได้รับข้อความของคุณแล้ว!",
+                reply_markup=create_ok_cancel_keyboard(user_id)
+            )
