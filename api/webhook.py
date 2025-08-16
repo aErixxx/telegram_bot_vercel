@@ -3,46 +3,26 @@ import json
 import logging
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
-from aiogram import Bot, Dispatcher, Router
-from aiogram.types import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import Command, CallbackQueryFilter
-import asyncio
+from urllib.parse import urlparse, parse_qs
+from aiogram import Bot, Dispatcher
+from aiogram.types import Update, Message
+from api.command import router
 
 # ตั้งค่า logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ดึง Bot Token จาก Environment Variables
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is required")
 
-# สร้าง bot และ dispatcher
+# bot และ dispatcher
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-router = Router()
 
-# Callback query handler สำหรับปุ่ม OK และ Cancel
-@router.callback_query(CallbackQueryFilter(callback_data=["btn_ok", "btn_cancel"]))
-async def handle_button_click(callback_query):
-    try:
-        if callback_query.data == "btn_ok":
-            await callback_query.message.answer("ได้รับการยืนยัน OK", reply_to_message_id=callback_query.message.message_id)
-        elif callback_query.data == "btn_cancel":
-            await callback_query.message.answer("ยกเลิกเรียบร้อย", reply_to_message_id=callback_query.message.message_id)
-        await callback_query.answer()  # หยุดวงกลม loading
-        logger.info(f"Processed callback query: {callback_query.data}")
-    except Exception as e:
-        logger.error(f"Error processing callback query: {str(e)}")
-
-# Command handler สำหรับ /start
-@router.message(Command("start"))
-async def start_command(message):
-    await message.answer("สวัสดี! Bot พร้อมใช้งานแล้ว")
-    logger.info(f"Processed /start command from chat {message.chat.id}")
-
-# รวม router เข้ากับ dispatcher
+#Include route Command
 dp.include_router(router)
 
 class handler(BaseHTTPRequestHandler):
@@ -53,6 +33,7 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             if path == "/" or path == "":
+                # Root endpoint
                 response_data = {
                     "message": "🤖 Telegram Bot Vercel is running!",
                     "status": "OK",
@@ -65,6 +46,7 @@ class handler(BaseHTTPRequestHandler):
                 self._send_json_response(200, response_data)
                 
             elif path == "/status":
+                # Health check endpoint
                 response_data = {
                     "status": "Ok",
                     "bot_token_set": bool(BOT_TOKEN),
@@ -73,6 +55,7 @@ class handler(BaseHTTPRequestHandler):
                 self._send_json_response(200, response_data)
                 
             else:
+                # 404 for other paths
                 self._send_json_response(404, {
                     "error": "Endpoint not found",
                     "path": path
@@ -92,12 +75,15 @@ class handler(BaseHTTPRequestHandler):
             path = parsed_path.path
             
             if path == "/webhook":
+                # Read request body
                 content_length = int(self.headers.get('Content-Length', 0))
                 post_data = self.rfile.read(content_length)
                 
+                # Parse JSON
                 webhook_data = json.loads(post_data.decode('utf-8'))
                 logger.info(f"📨 Received webhook: {webhook_data}")
                 
+                # ตรวจสอบว่าเป็น Telegram update หรือไม่
                 if 'update_id' not in webhook_data:
                     logger.warning("⚠️ Invalid webhook data - missing update_id")
                     self._send_json_response(400, {
@@ -105,16 +91,26 @@ class handler(BaseHTTPRequestHandler):
                     })
                     return
                 
-                # Process webhook asynchronously
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # Process webhook with proper event loop handling
+                import asyncio
                 try:
+                    # Create new event loop for serverless environment
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    # Run the webhook processing
                     loop.run_until_complete(self._process_webhook(webhook_data))
+                    
                 except Exception as e:
                     logger.error(f"❌ Error in async processing: {e}")
                 finally:
-                    loop.close()
+                    # Clean up the loop properly
+                    try:
+                        loop.close()
+                    except:
+                        pass
                 
+                # Send success response
                 self._send_json_response(200, {
                     "ok": True,
                     "update_id": webhook_data.get('update_id'),
@@ -152,12 +148,19 @@ class handler(BaseHTTPRequestHandler):
     async def _process_webhook(self, webhook_data):
         """Process Telegram webhook data"""
         try:
+            # Create Update object
             update = Update(**webhook_data)
+            
+            # Create a fresh bot instance for this request
             bot_instance = Bot(token=BOT_TOKEN)
+            
+            # Process the update with proper session management
             try:
                 await dp.feed_update(bot_instance, update)
             finally:
+                # Close bot session properly
                 await bot_instance.session.close()
+            
         except Exception as e:
             logger.error(f"❌ Error processing update: {e}")
             raise
@@ -177,3 +180,4 @@ class handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         """Override log message to use our logger"""
         logger.info(f"{self.address_string()} - {format % args}")
+
