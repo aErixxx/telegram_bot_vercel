@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command, CallbackQueryFilter
+import asyncio
 
 # ตั้งค่า logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,7 +36,7 @@ async def handle_button_click(callback_query):
     except Exception as e:
         logger.error(f"Error processing callback query: {str(e)}")
 
-# Command handler (ตัวอย่างสำหรับ /start)
+# Command handler สำหรับ /start
 @router.message(Command("start"))
 async def start_command(message):
     await message.answer("สวัสดี! Bot พร้อมใช้งานแล้ว")
@@ -104,16 +105,11 @@ class handler(BaseHTTPRequestHandler):
                     })
                     return
                 
-                import asyncio
+                # Process webhook asynchronously
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    update = Update(**webhook_data)
-                    bot_instance = Bot(token=BOT_TOKEN)
-                    try:
-                        await dp.feed_update(bot_instance, update)
-                    finally:
-                        await bot_instance.session.close()
+                    loop.run_until_complete(self._process_webhook(webhook_data))
                 except Exception as e:
                     logger.error(f"❌ Error in async processing: {e}")
                 finally:
@@ -153,6 +149,19 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
         
+    async def _process_webhook(self, webhook_data):
+        """Process Telegram webhook data"""
+        try:
+            update = Update(**webhook_data)
+            bot_instance = Bot(token=BOT_TOKEN)
+            try:
+                await dp.feed_update(bot_instance, update)
+            finally:
+                await bot_instance.session.close()
+        except Exception as e:
+            logger.error(f"❌ Error processing update: {e}")
+            raise
+
     def _send_json_response(self, status_code, data):
         """Send JSON response"""
         self.send_response(status_code)
